@@ -1,0 +1,93 @@
+_schema-version: "3.2"
+ID: FioriDemoAKR
+description: Fiori elements app
+version: 0.0.1
+modules:
+- name: FioriDemoAKR-dest-content
+  type: com.sap.application.content
+  requires:
+  - name: FioriDemoAKR-dest-srv
+    parameters:
+      content-target: true
+  - name: FioriDemoAKR-repo-host
+    parameters:
+      service-key:
+        name: FioriDemoAKR-repo-host-key
+  - name: FioriDemoAKR-uaa
+    parameters:
+      service-key:
+        name: FioriDemoAKR-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: FioriDemoAKR_repo_host
+          ServiceInstanceName: FioriDemoAKR-html5-srv
+          ServiceKeyName: FioriDemoAKR-repo-host-key
+          sap.cloud.service: FioriDemoAKR
+        - Authentication: OAuth2UserTokenExchange
+          Name: FioriDemoAKR_uaa
+          ServiceInstanceName: FioriDemoAKR-xsuaa-srv
+          ServiceKeyName: FioriDemoAKR-uaa-key
+          sap.cloud.service: FioriDemoAKR
+        existing_destinations_policy: update
+  build-parameters:
+    no-source: true
+- name: FioriDemoAKR-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: FioriDemoAKR-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - finbusinesspartners.zip
+      name: finbusinesspartners
+      target-path: resources/
+- name: finbusinesspartners
+  type: html5
+  path: businesspartners
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: FioriDemoAKR-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: FioriDemoAKR-xsuaa-srv
+    service-plan: application
+- name: FioriDemoAKR-dest-srv
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: FioriDemoAKR-dest-srv
+    service-plan: lite
+- name: FioriDemoAKR-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: FioriDemoAKR-html5-srv
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
